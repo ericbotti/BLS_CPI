@@ -10,7 +10,9 @@ python = "^3.11"
 ipykernel = "^6.29.5"
 requests = "^2.32.3"
 prettytable = "^3.11.0"
+pandas = "^2.2.2"
 
 
 [build-system]
-re
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,23 @@
++---------------------+------+--------+---------+-----------+
+|      series id      | year | period |  value  | footnotes |
++---------------------+------+--------+---------+-----------+
+| Food_Away_From_Home | 2024 |  M07   | 369.383 |           |
+| Food_Away_From_Home | 2024 |  M06   | 368.616 |           |
+| Food_Away_From_Home | 2024 |  M05   | 367.099 |           |
+| Food_Away_From_Home | 2024 |  M04   | 365.813 |           |
+| Food_Away_From_Home | 2024 |  M03   | 364.546 |           |
+| Food_Away_From_Home | 2024 |  M02   | 363.596 |           |
+| Food_Away_From_Home | 2024 |  M01   | 363.249 |           |
+| Food_Away_From_Home | 2023 |  M12   | 361.564 |           |
+| Food_Away_From_Home | 2023 |  M11   | 360.383 |           |
+| Food_Away_From_Home | 2023 |  M10   | 358.824 |           |
+| Food_Away_From_Home | 2023 |  M09   | 357.488 |           |
+| Food_Away_From_Home | 2023 |  M08   | 356.083 |           |
+| Food_Away_From_Home | 2023 |  M07   | 354.862 |           |
+| Food_Away_From_Home | 2023 |  M06   | 354.245 |           |
+| Food_Away_From_Home | 2023 |  M05   | 352.892 |           |
+| Food_Away_From_Home | 2023 |  M04   | 351.237 |           |
+| Food_Away_From_Home | 2023 |  M03   | 349.944 |           |
+| Food_Away_From_Home | 2023 |  M02   | 347.869 |           |
+| Food_Away_From_Home | 2023 |  M01   | 345.677 |           |
++---------------------+------+--------+---------+-----------+

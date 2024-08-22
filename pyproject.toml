@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "bls-cpi"
+version = "0.1.0"
+description = ""
+authors = ["Eric Bottinelli <ericbottinelli@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+ipykernel = "^6.29.5"
+requests = "^2.32.3"
+prettytable = "^3.11.0"
+
+
+[build-system]
+re

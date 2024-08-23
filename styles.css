@@ -1,0 +1,22 @@
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    font-size: 15px; /* Font size for column headers */
+    padding: 2px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+td {
+    font-size: 14px; /* Font size for table content */
+    padding: 2px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+.dataframe {
+    width: 100%;
+}

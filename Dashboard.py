@@ -19,16 +19,13 @@ def local_css(file_name):
 def apply_styles(row):
     styles = [''] * len(row)
     if row['Sub Category 1'] == '' and row['Sub Category 2'] == '':
-        # Apply dark blue to Category, Sub Category 1, and Sub Category 2
         styles[0] = 'background-color: darkblue; color: white'
         styles[1] = 'background-color: darkblue; color: white'
         styles[2] = 'background-color: darkblue; color: white'
     elif row['Sub Category 1'] != '' and row['Sub Category 2'] == '':
-        # Apply blue to Sub Category 1 and Sub Category 2
         styles[1] = 'background-color: blue; color: white'
         styles[2] = 'background-color: blue; color: white'
     elif row['Sub Category 2'] != '':
-        # Apply light blue to Sub Category 2
         styles[2] = 'background-color: lightblue; color: black'
     return styles
 
@@ -38,7 +35,7 @@ def apply_index_weighting(df):
 
 def display_dataframe(df, index_weighted, num_columns_to_show):
     df.replace(np.nan, '', inplace=True)
-    if index_weighted:
+    if index_weighted == 'Yes':
         apply_index_weighting(df)
     columns_to_show = ['Category', 'Sub Category 1', 'Sub Category 2', 'Weight'] + list(df.columns[4:4 + num_columns_to_show])
     df = df[columns_to_show]
@@ -67,11 +64,8 @@ def prepare_plot_data(df):
     plot_data = df.melt(id_vars=['Name', 'Category', 'Sub Category 1', 'Sub Category 2', 'Weight'],
                         var_name='Month-Year',
                         value_name='MoM_change')
-    # Apply index weighting to the 'MoM_change' column
     plot_data['MoM_change'] = plot_data['MoM_change'] * plot_data['Weight'] / 100
-    # Convert 'Month-Year' to datetime to sort correctly
     plot_data['Month-Year'] = pd.to_datetime(plot_data['Month-Year'], format='%b-%y')
-    # Sort data by 'Month-Year' in ascending order for correct chronological plotting
     plot_data.sort_values('Month-Year', inplace=True)
     return plot_data
 
@@ -79,40 +73,32 @@ def plot_data(df, selected_ids):
     if not selected_ids:
         st.error("Please select at least one ID to display.")
         return
-
-    # Prepare data for plotting
     plot_df = prepare_plot_data(df)
-
-    # Filter the DataFrame based on selected names from the 'Name' column
     df_filtered = plot_df[plot_df['Name'].isin(selected_ids)]
-
-    # Creating a plot using Plotly, apply percentage formatting on y-axis
     fig = px.line(df_filtered, x='Month-Year', y='MoM_change', color='Name', 
                   labels={'MoM_change': 'Month-over-Month Change (%)', 'Month-Year': 'Date'},
                   title='MoM Change Over Time')
-    fig.update_layout(yaxis_tickformat='0.2%')  # Ensure y-axis is formatted as percentage
+    fig.update_layout(yaxis_tickformat='0.2%')
     st.plotly_chart(fig, use_container_width=True)
 
-
-
-
-# Main app
 def main():
     NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df = load_data()
 
     local_css("styles.css")
 
-    tab1, tab2 = st.tabs(["Heatmaps", "Interactive Plots"])
+    st.title('BLS CPI Data Analysis')
+
+    tab1, tab2 = st.tabs(["Heatmap", "Plot"])
     with tab1:
-        st.title('BLS CPI Data Analysis - Heatmaps')
-        index_weighted = st.checkbox("Index Weighted", value=False) 
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col2:
-            SA = st.radio("Seasonality Adjustment:", ('Yes', 'No'))
-        with col3:
-            MoM_YoY = st.radio("Percentage change:", ('Month over Month', 'Year over Year'))
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
         with col1:
             num_columns_to_show = st.slider("Number of Periods to Display:", 1, 12, 6)
+        with col2:
+            index_weighted = st.radio("Index Weighted", ('Yes', 'No'), index=1)
+        with col3:
+            SA = st.radio("Seasonality Adjustment:", ('Yes', 'No'), key="seasonality_adjustment_tab1")
+        with col4:
+            MoM_YoY = st.radio("Percentage change:", ('Month over Month', 'Year over Year'))
         if SA == 'Yes' and MoM_YoY == 'Month over Month':
             display_dataframe(SA_MoM_df.iloc[:,1:], index_weighted, num_columns_to_show)
         elif SA == 'Yes' and MoM_YoY == 'Year over Year':
@@ -123,11 +109,15 @@ def main():
             display_dataframe(NSA_YoY_df.iloc[:,1:], index_weighted, num_columns_to_show)
 
     with tab2:
-        st.title('Interactive CPI Data Visualization - Plots')
-        data_choice = st.selectbox("Choose the data type for plotting:", ('SA', 'NSA'))
-        df_to_use = SA_MoM_df if data_choice == 'SA' else NSA_MoM_df
+        tab4, tab5 = st.columns([0.2, 1])
+        with tab4:
+            data_choice = st.radio("Seasonality Adjustment:", ('Yes', 'No'), key="seasonality_adjustment_tab2")
+        df_to_use = SA_MoM_df if data_choice == 'Yes' else NSA_MoM_df
         all_ids = df_to_use['Name'].unique()
-        selected_ids = st.multiselect('Select IDs to plot:', all_ids, default=all_ids[:3])
+        default_selections = ['Services excluding Energy', 'Supercore'] # select default plots to display
+        valid_defaults = [name for name in default_selections if name in all_ids] # check if default selections are present in the data
+        with tab5:
+            selected_ids = st.multiselect('Select IDs to plot:', all_ids, default=valid_defaults)
         plot_data(df_to_use, selected_ids)
 
 

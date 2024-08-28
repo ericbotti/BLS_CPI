@@ -29,3 +29,7 @@ td {
 .table-min-width {
     min-width: 1400px; /* minimum width of the table */
 }
+
+.stMultiSelect [data-baseweb=select] span{
+    max-width: 250px; /* Trick to avoid words in the multiselection widget to get truncated */
+}

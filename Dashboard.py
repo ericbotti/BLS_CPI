@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.express as px
 
 st.set_page_config(layout="wide")
 
@@ -61,6 +62,39 @@ def display_dataframe(df, index_weighted, num_columns_to_show):
     html = styled_df.set_table_attributes('class="table-min-width"').to_html()
     st.markdown(html, unsafe_allow_html=True)
 
+def prepare_plot_data(df):
+    # Melt the DataFrame to long format just for plotting
+    plot_data = df.melt(id_vars=['Name', 'Category', 'Sub Category 1', 'Sub Category 2', 'Weight'],
+                        var_name='Month-Year',
+                        value_name='MoM_change')
+    # Apply index weighting to the 'MoM_change' column
+    plot_data['MoM_change'] = plot_data['MoM_change'] * plot_data['Weight'] / 100
+    # Convert 'Month-Year' to datetime to sort correctly
+    plot_data['Month-Year'] = pd.to_datetime(plot_data['Month-Year'], format='%b-%y')
+    # Sort data by 'Month-Year' in ascending order for correct chronological plotting
+    plot_data.sort_values('Month-Year', inplace=True)
+    return plot_data
+
+def plot_data(df, selected_ids):
+    if not selected_ids:
+        st.error("Please select at least one ID to display.")
+        return
+
+    # Prepare data for plotting
+    plot_df = prepare_plot_data(df)
+
+    # Filter the DataFrame based on selected names from the 'Name' column
+    df_filtered = plot_df[plot_df['Name'].isin(selected_ids)]
+
+    # Creating a plot using Plotly, apply percentage formatting on y-axis
+    fig = px.line(df_filtered, x='Month-Year', y='MoM_change', color='Name', 
+                  labels={'MoM_change': 'Month-over-Month Change (%)', 'Month-Year': 'Date'},
+                  title='MoM Change Over Time')
+    fig.update_layout(yaxis_tickformat='0.2%')  # Ensure y-axis is formatted as percentage
+    st.plotly_chart(fig, use_container_width=True)
+
+
+
 
 # Main app
 def main():
@@ -68,29 +102,33 @@ def main():
 
     local_css("styles.css")
 
-    st.title('BLS CPI Data Analysis')
-    st.write("Analysis of the Consumer Price Index (CPI) data from the Bureau of Labor Statistics (BLS).")
+    tab1, tab2 = st.tabs(["Heatmaps", "Interactive Plots"])
+    with tab1:
+        st.title('BLS CPI Data Analysis - Heatmaps')
+        index_weighted = st.checkbox("Index Weighted", value=False) 
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            SA = st.radio("Seasonality Adjustment:", ('Yes', 'No'))
+        with col3:
+            MoM_YoY = st.radio("Percentage change:", ('Month over Month', 'Year over Year'))
+        with col1:
+            num_columns_to_show = st.slider("Number of Periods to Display:", 1, 12, 6)
+        if SA == 'Yes' and MoM_YoY == 'Month over Month':
+            display_dataframe(SA_MoM_df.iloc[:,1:], index_weighted, num_columns_to_show)
+        elif SA == 'Yes' and MoM_YoY == 'Year over Year':
+            display_dataframe(SA_YoY_df.iloc[:,1:], index_weighted, num_columns_to_show)
+        elif SA == 'No' and MoM_YoY == 'Month over Month':
+            display_dataframe(NSA_MoM_df.iloc[:,1:], index_weighted, num_columns_to_show)
+        elif SA == 'No' and MoM_YoY == 'Year over Year':
+            display_dataframe(NSA_YoY_df.iloc[:,1:], index_weighted, num_columns_to_show)
 
-    index_weighted = st.checkbox("Index Weighted", value=False) 
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        SA = st.radio("Seasonality Adjustment:", ('Yes', 'No'))
-    with col3:
-        MoM_YoY = st.radio("Percentage change:", ('Month over Month', 'Year over Year'))
-    with col1:
-        if MoM_YoY == 'Month over Month':
-            num_columns_to_show = st.slider("Number of Previous Months:", min_value=1, max_value=12, value=6)
-        elif MoM_YoY == 'Year over Year':
-            num_columns_to_show = st.slider("Number of Previous Years:", min_value=1, max_value=6, value=6)    
-    
-    if SA == 'Yes' and MoM_YoY == 'Month over Month':
-        display_dataframe(SA_MoM_df, index_weighted, num_columns_to_show)
-    elif SA == 'Yes' and MoM_YoY == 'Year over Year':
-        display_dataframe(SA_YoY_df, index_weighted, num_columns_to_show)
-    elif SA == 'No' and MoM_YoY == 'Month over Month':
-        display_dataframe(NSA_MoM_df, index_weighted, num_columns_to_show)
-    elif SA == 'No' and MoM_YoY == 'Year over Year':
-        display_dataframe(NSA_YoY_df, index_weighted, num_columns_to_show)
+    with tab2:
+        st.title('Interactive CPI Data Visualization - Plots')
+        data_choice = st.selectbox("Choose the data type for plotting:", ('SA', 'NSA'))
+        df_to_use = SA_MoM_df if data_choice == 'SA' else NSA_MoM_df
+        all_ids = df_to_use['Name'].unique()
+        selected_ids = st.multiselect('Select IDs to plot:', all_ids, default=all_ids[:3])
+        plot_data(df_to_use, selected_ids)
 
 
 if __name__ == "__main__":

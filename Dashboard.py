@@ -3,9 +3,15 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide") # set Streamlit to wide mode to fit the entire screen
 
-def load_data():
+def load_data() -> tuple:
+    '''
+    Load the CPI data and summary text.
+    
+    Returns:
+        A tuple of DataFrames and a string containing the summary text.
+    '''
     NSA_MoM_df = pd.read_csv('CPI_Data/NSA_MoM_CPI_data.csv')
     NSA_YoY_df = pd.read_csv('CPI_Data/NSA_YoY_CPI_data.csv')
     SA_MoM_df = pd.read_csv('CPI_Data/SA_MoM_CPI_data.csv')
@@ -14,12 +20,23 @@ def load_data():
         summary = file.read()
     return NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df, summary
 
-def local_css(file_name):
+def local_css(file_name: str):
+    '''Load local CSS file to style the Streamlit app'''
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-def apply_styles(row):
+def apply_styles(row: pd.Series) -> list:
+    '''
+    Apply styles to the table based on the Category and Sub Category columns.
+
+    Args:
+        row: A row in the DataFrame
+
+    Returns:
+        A list of styles to apply to the row
+    '''
     styles = [''] * len(row)
+    # Unfortunately I couldn't find a way to add these styles in the CSS file, probably because of the way the table is rendered
     if row['Sub Category 1'] == '' and row['Sub Category 2'] == '':
         styles[0] = 'background-color: darkblue; color: white'
         styles[1] = 'background-color: darkblue; color: white'
@@ -31,11 +48,25 @@ def apply_styles(row):
         styles[2] = 'background-color: lightblue; color: black'
     return styles
 
-def apply_index_weighting(df):
+def apply_index_weighting(df: pd.DataFrame):
+    '''
+    Calculate the percentage change in the data based on the weight of each category.
+
+    Args:
+        df: The DataFrame containing the data
+    '''
     df.iloc[:, 4:] = df.iloc[:, 4:].apply(lambda x: x * df['Weight']/100, axis=0)
 
 
-def display_dataframe(df, index_weighted, num_columns_to_show):
+def display_dataframe(df: pd.DataFrame, index_weighted: str, num_columns_to_show: int):
+    '''
+    Display the DataFrame in a styled format, using a heatmap to highlight the values. The colors are based on the maximum absolute value in the first row. The reason for this is to have a consistent color scale across all rows, and the first row is chosen because it is the reference point for the index weighting.
+
+    Args:
+        df: The DataFrame to display
+        index_weighted: A string indicating if the data is index weighted
+        num_columns_to_show: The number of columns to display
+    '''
     df.replace(np.nan, '', inplace=True)
     if index_weighted == 'Yes':
         apply_index_weighting(df)
@@ -44,24 +75,33 @@ def display_dataframe(df, index_weighted, num_columns_to_show):
     max_abs_value = df.iloc[0, 4:].abs().max().max() 
     df['Weight'] = df['Weight'].apply(lambda x: f"{x:.1f}%")
 
-    table_styles = [
+    table_styles = [ # still problems adding these styles to the CSS file
         {'selector': 'th:nth-child(1), td:nth-child(1)', 'props': 'width: 127px;'},
         {'selector': 'th:nth-child(2), td:nth-child(2)', 'props': 'width: 127px;'},
         {'selector': 'th:nth-child(3), td:nth-child(3)', 'props': 'width: 127px;'},
         {'selector': 'th:nth-child(4), td:nth-child(4)', 'props': 'width: 80px;'},
         {'selector': 'th:nth-child(n+5), td:nth-child(n+5)', 'props': 'min-width: 50px;'}
     ]
-
-    styled_df = df.style.format(formatter="{:.2%}", subset=df.columns[4:]).background_gradient(
+    # Apply heatmap to the data and apply styles to the table. The color palette has been chosen to be red-green to show negative and positive changes. This corresponds to the RdYlGn colormap in Matplotlib.
+    styled_df = df.style.format(formatter="{:.2%}", subset=df.columns[4:]).background_gradient( # apply heatmap to the data. The 
         cmap='RdYlGn', subset=df.columns[4:], vmin=-max_abs_value, vmax=max_abs_value
     ).apply(apply_styles, axis=1, subset=['Category', 'Sub Category 1', 'Sub Category 2']).hide(axis="index")
 
     styled_df.set_table_styles(table_styles)
 
-    html = styled_df.set_table_attributes('class="table-min-width"').to_html()
+    html = styled_df.set_table_attributes('class="table-min-width"').to_html() # add a class to the table to apply the CSS styles in the CSS file
     st.markdown(html, unsafe_allow_html=True)
 
-def prepare_plot_data(df):
+def prepare_plot_data(df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Prepare the DataFrame for plotting by melting it to long format, which is easier to plot.
+
+    Args:
+        df: The DataFrame to prepare
+    
+    Returns:
+        A DataFrame in long format
+    '''
     # Melt the DataFrame to long format just for plotting
     plot_data = df.melt(id_vars=['Name', 'Category', 'Sub Category 1', 'Sub Category 2', 'Weight'],
                         var_name='Month-Year',
@@ -71,9 +111,16 @@ def prepare_plot_data(df):
     plot_data.sort_values('Month-Year', inplace=True)
     return plot_data
 
-def plot_data(df, selected_ids):
+def plot_data(df: pd.DataFrame, selected_ids: list):
+    '''
+    Plot the data based on the selected category.
+
+    Args:
+        df: The DataFrame to plot
+        selected_ids: A list of selected categories to plot
+    '''
     if not selected_ids:
-        st.error("Please select at least one ID to display.")
+        st.error("Please select at least one category to display.")
         return
     plot_df = prepare_plot_data(df)
     df_filtered = plot_df[plot_df['Name'].isin(selected_ids)]
@@ -86,12 +133,10 @@ def plot_data(df, selected_ids):
 def main():
     NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df, summary = load_data()
 
-    local_css("styles.css")
+    local_css("styles.css") # load the CSS file to style the Streamlit app
 
     st.title('BLS CPI Data Analysis')
-
-    # st.text_area('Summary Paragraph:', summary, height=200)
-    st.markdown('<textarea class="textbox">{}</textarea>'.format(summary), unsafe_allow_html=True)
+    st.markdown('<textarea class="textbox">{}</textarea>'.format(summary), unsafe_allow_html=True) # display the summary text in a styled textarea
 
     tab1, tab2 = st.tabs(["Heatmap", "Plot"])
     with tab1:

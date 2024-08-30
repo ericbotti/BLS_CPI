@@ -10,7 +10,9 @@ def load_data():
     NSA_YoY_df = pd.read_csv('CPI_Data/NSA_YoY_CPI_data.csv')
     SA_MoM_df = pd.read_csv('CPI_Data/SA_MoM_CPI_data.csv')
     SA_YoY_df = pd.read_csv('CPI_Data/SA_YoY_CPI_data.csv')
-    return NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df
+    with open('CPI_Data/summary.txt', 'r') as file:
+        summary = file.read()
+    return NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df, summary
 
 def local_css(file_name):
     with open(file_name) as f:
@@ -82,11 +84,14 @@ def plot_data(df, selected_ids):
     st.plotly_chart(fig, use_container_width=True)
 
 def main():
-    NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df = load_data()
+    NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df, summary = load_data()
 
     local_css("styles.css")
 
     st.title('BLS CPI Data Analysis')
+
+    # st.text_area('Summary Paragraph:', summary, height=200)
+    st.markdown('<textarea class="textbox">{}</textarea>'.format(summary), unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["Heatmap", "Plot"])
     with tab1:

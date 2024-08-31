@@ -11,7 +11,7 @@ python = "^3.11"
 ipykernel = "^6.29.5"
 requests = "^2.32.3"
 prettytable = "^3.11.0"
-pandas = "^2.2.2"
+pandas = "2.0.3"
 streamlit = "^1.37.1"
 matplotlib = "^3.9.2"
 plotly = "^5.23.0"
@@ -20,10 +20,12 @@ transformers = "^4.44.2"
 torch = "^2.2.0" 
 torchvision = "^0.17.0"
 sentencepiece = "^0.2.0"
+numpy = "1.24.4"
+schedule = "^1.2.2"
 
 [tool.poetry.extras]
 cpu = ["torch", "torchvision"]
 
 [build-system]
 requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+build-backend = "poetr

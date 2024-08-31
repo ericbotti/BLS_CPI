@@ -3,7 +3,6 @@ import requests
 import json
 import prettytable
 import pandas as pd
-import requests
 from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
 from datetime import datetime
@@ -148,7 +147,7 @@ def MoM_YoY_CPI_data(df: pd.DataFrame) -> pd.DataFrame:
     df['YoY_change'] = df.groupby('id')['value'].transform(lambda x: (x - x.shift(-12)) / x.shift(-12))
     return df
 
-def calculate_weighted_change(df: pd.DataFrame, id1: str, id2: str, new_id: str, weight1: float, weight2: float, weight_total: float, operation: str) -> pd.DataFrame
+def calculate_weighted_change(df: pd.DataFrame, id1: str, id2: str, new_id: str, weight1: float, weight2: float, weight_total: float, operation: str) -> pd.DataFrame:
     '''
     Calculate the weighted change of food + energy and supercore for both SA and non-SA (NSA). The supercore CPI corresponds to the core-core CPI, which excludes shelter and energy. The weighted change is calculated by adding or subtracting the weighted changes of the two series.
     
@@ -343,7 +342,7 @@ def summarize_paragraph(paragraph: str) -> str:
         no_repeat_ngram_size=3,  # prevent repetition of phrases
         early_stopping=True  # for short paragraphs like this one it's not really needed
     )
-    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=True)
     return summary
 
 
@@ -351,6 +350,7 @@ def main():
     weight_map, series_names, series_ids, folder_name, category_map = initialize_cpi_data()
 
     df = retrieve_CPI_data(series_ids, series_names, folder_name)
+    print("CPI data retrieved.")
     df = MoM_YoY_CPI_data(df)
 
     # Calculate 'SA_Food_Energy' and 'NSA_Food_Energy'
@@ -369,6 +369,7 @@ def main():
 
     NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df = process_cpi_data(df, category_map, weight_map)
     save_cpi_dataframes_to_csv(NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df, folder_name)
+    print("CPI data processed and saved.")
 
     url = "https://www.bls.gov/news.release/cpi.nr0.htm" # URL of BLS CPI latest report
     full_text = fetch_report_text(url)
@@ -380,4 +381,7 @@ def main():
     txt_path = os.path.join(folder_name, 'summary.txt')
     with open(txt_path, 'w') as file:
         file.write(summary)
+    print("CPI report summary generated.")
 
+if __name__ == "__main__":
+    main()

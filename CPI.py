@@ -8,15 +8,21 @@ from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
 from datetime import datetime
 
-def initialize_cpi_data():
+def initialize_cpi_data() -> tuple:
     '''
-    Initializes the CPI data setup by creating the necessary folder, defining category weights, and preparing the series names and IDs.
+    Initializes the CPI data setup by creating the necessary folder for data storage, defining category weights, 
+    mapping series names to their respective IDs, and preparing category mappings for organizing data. These have to be set manually because the BLS API doesn't provide this information.
+    This function ensures that all necessary directories and configurations are in place for subsequent CPI data processing tasks.
 
     Returns:
-        tuple: A tuple containing weight_map (dict), series_names (dict), and series_ids (list).
+        A tuple containing:
+        - weight_map: A dictionary mapping CPI categories to their respective weights.
+        - series_names: A dictionary mapping BLS series IDs to human-readable names.
+        - series_ids: A list of BLS series IDs used for data retrieval.
+        - folder_name: The name of the folder where CPI data will be stored.
+        - category_map: A dictionary that maps category names to tuples containing their ordering and descriptive information.
     '''
-    # Folder directory containing all the saved data
-    folder_name = 'CPI_Data'
+    folder_name = 'CPI_Data' # folder directory containing all the saved data
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
 
@@ -60,9 +66,9 @@ def initialize_cpi_data():
         'CUUR0000SAH1': 'NSA_Shelter',
         'CUSR0000SAH1': 'SA_Shelter',
     }
-
     series_ids = list(series_names.keys())
 
+    # Category map which maps the category and sub categories to their respective names
     category_map = {
         'All_Items': (0, 'Headline', '', '', 'All Items'),
         'Food_Energy': (1, 'Food + Energy', '', '', 'Food and Energy'),
@@ -79,11 +85,18 @@ def initialize_cpi_data():
 
     return weight_map, series_names, series_ids, folder_name, category_map
 
-def retrieve_CPI_data(series_ids: list, series_names: dict, folder_name: str):
+def retrieve_CPI_data(series_ids: list, series_names: dict, folder_name: str) -> pd.DataFrame:
     '''
-    Retrieve the latest CPI data from the BLS website.
+    Retrieve the latest CPI data from the BLS website using the BLS API. The data is retrieved for the last 12 months and saved in a CSV file.
+
+    Args:
+        series_ids: A list of BLS series IDs to retrieve data for.
+        series_names: A dictionary mapping BLS series IDs to human-readable names.
+        folder_name: The name of the folder where the CPI data will be stored.
+
+    Returns:
+        A DataFrame containing the retrieved CPI data.
     '''
-    # Gather the last 12 months of data
     current_date = datetime.now()
     current_year = current_date.year
     last_year = current_year - 1
@@ -122,13 +135,22 @@ def retrieve_CPI_data(series_ids: list, series_names: dict, folder_name: str):
     return df
 
 def MoM_YoY_CPI_data(df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Calculate the Month-over-Month (MoM) and Year-over-Year (YoY) changes in the CPI data.
+
+    Args:
+        df: The DataFrame containing the CPI data.
+
+    Returns:
+        The DataFrame with the MoM and YoY changes added.
+    '''
     df['MoM_change'] = df.groupby('id')['value'].transform(lambda x: (x - x.shift(-1)) / x.shift(-1))
     df['YoY_change'] = df.groupby('id')['value'].transform(lambda x: (x - x.shift(-12)) / x.shift(-12))
     return df
 
 def calculate_weighted_change(df: pd.DataFrame, id1: str, id2: str, new_id: str, weight1: float, weight2: float, weight_total: float, operation: str) -> pd.DataFrame
     '''
-    Calculate the weighted change of food + energy and supercore for both SA and non-SA (NSA).
+    Calculate the weighted change of food + energy and supercore for both SA and non-SA (NSA). The supercore CPI corresponds to the core-core CPI, which excludes shelter and energy. The weighted change is calculated by adding or subtracting the weighted changes of the two series.
     
     Args:
         df: The DataFrame containing the CPI data.
@@ -159,17 +181,17 @@ def calculate_weighted_change(df: pd.DataFrame, id1: str, id2: str, new_id: str,
     result = result[['id', 'date', 'value', 'MoM_change', 'YoY_change']]
     return result
 
-def process_cpi_data(df, category_map, weight_map):
+def process_cpi_data(df: pd.DataFrame, category_map: dict, weight_map: dict) -> tuple:
     '''
-    Processes CPI data into MoM and YoY changes for both NSA and SA categories.
+    Create four DataFrames containing processed data for NSA MoM, NSA YoY, SA MoM, and SA YoY. The data is organized by category and subcategory, and the values are pivoted to show the changes over time. This allows the data to be easily visualized later in a Streamlit dashboard.
 
     Args:
-        df (pd.DataFrame): The DataFrame containing the CPI data.
-        category_map (dict): A mapping from category IDs to category names and metadata.
-        weight_map (dict): A mapping from category IDs to their respective weights.
+        df: The DataFrame containing the CPI data.
+        category_map: A mapping from category IDs to category names and metadata.
+        weight_map: A mapping from category IDs to their respective weights.
 
     Returns:
-        tuple: Four DataFrames containing processed data for NSA MoM, NSA YoY, SA MoM, and SA YoY.
+        Four DataFrames containing processed data for NSA MoM, NSA YoY, SA MoM, and SA YoY.
     '''
     ordered_categories = ['Headline', 'Food + Energy', 'Core']
     ordered_sub_categories_1 = ['Food', 'Energy', 'Commodities', 'Services']
@@ -224,23 +246,17 @@ def process_cpi_data(df, category_map, weight_map):
 
     return NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df
 
-def save_cpi_dataframes_to_csv(NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df, folder_name='CPI_Data'):
+def save_cpi_dataframes_to_csv(NSA_MoM_df: pd.DataFrame, NSA_YoY_df: pd.DataFrame, SA_MoM_df: pd.DataFrame, SA_YoY_df: pd.DataFrame, folder_name: str):
     """
     Saves the CPI DataFrames to CSV files in the specified folder.
 
     Args:
-        NSA_MoM_df (pd.DataFrame): DataFrame containing NSA Month-over-Month CPI data.
-        NSA_YoY_df (pd.DataFrame): DataFrame containing NSA Year-over-Year CPI data.
-        SA_MoM_df (pd.DataFrame): DataFrame containing SA Month-over-Month CPI data.
-        SA_YoY_df (pd.DataFrame): DataFrame containing SA Year-over-Year CPI data.
-        folder_name (str): The directory where the CSV files will be saved. Defaults to 'CPI_Data'.
+        NSA_MoM_df: DataFrame containing NSA Month-over-Month CPI data.
+        NSA_YoY_df: DataFrame containing NSA Year-over-Year CPI data.
+        SA_MoM_df: DataFrame containing SA Month-over-Month CPI data.
+        SA_YoY_df: DataFrame containing SA Year-over-Year CPI data.
+        folder_name: The directory where the CSV files will be saved. Defaults to 'CPI_Data'.
     """
-
-    # Ensure the folder exists
-    if not os.path.exists(folder_name):
-        os.makedirs(folder_name)
-    
-    # Save each DataFrame to a CSV file
     NSA_MoM_path = os.path.join(folder_name, 'NSA_MoM_CPI_data.csv')
     NSA_YoY_path = os.path.join(folder_name, 'NSA_YoY_CPI_data.csv')
     SA_MoM_path = os.path.join(folder_name, 'SA_MoM_CPI_data.csv')
@@ -250,6 +266,85 @@ def save_cpi_dataframes_to_csv(NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df, fol
     NSA_YoY_df.to_csv(NSA_YoY_path, index=False)
     SA_MoM_df.to_csv(SA_MoM_path, index=False)
     SA_YoY_df.to_csv(SA_YoY_path, index=False)
+
+def fetch_report_text(url: str) -> str:
+    '''
+    The BLS API doesn't provide the report text, so I had to scrape the website to get it. The website structure is simple, so I used BeautifulSoup to get the text. BLS has an anti-scraping system, so I had to add a User-Agent header to the request.
+
+    Args:
+        url: The URL of the webpage to scrape
+    
+    Returns:
+        The text of the report
+    '''
+    headers = {
+        'User-Agent': 'email@domain.name'  # it doesn't matter
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200: # code 200 means the request was successful
+        soup = BeautifulSoup(response.text, 'html.parser')
+        normalnews_div = soup.find('div', class_='normalnews') # after analyzing the webpage using the inspector, I found that the needed text is inside a <div> with class 'normalnews'
+        if normalnews_div:
+            return normalnews_div.get_text(separator='\n', strip=True)
+        else:
+            return "No <div> with class 'normalnews' found." # error management
+    else:
+        return f"Failed to retrieve page: {response.status_code}"
+    
+def extract_paragraph_based_on_index(full_text: str) -> str:
+    '''
+    Extract the second paragraph of the main section of the report, or the third paragraph if a "NOTE:" is present after the second paragraph (e.g. June 2024). A LLM could be used to find the paragraph of interest, but after the whole process of training, the best result would be for it to understand this pattern. Therefore, I decided to use a simple rule-based approach. For all the previous year, this rule-based approach worked perfectly. A more advanced system that could detect a sudden change in the report structure would be needed to handle the edge cases, but for this project would be overkill.
+
+    Args:
+        full_text: The full text of the report retrieved from the BLS website
+
+    Returns:
+        The paragraph of interest
+    '''
+    paragraphs = [p.strip() for p in full_text.replace('\r', '').split('\n\n') if p.strip()] # split the text into paragraphs
+    for i, paragraph in enumerate(paragraphs):
+        if "CONSUMER PRICE INDEX" in paragraph: # "CONSUMER PRICE INDEX" is the section we are interested in, and it's the only consumer price index title written in uppercase
+            start_index = i
+            break
+    else:
+        return "CONSUMER PRICE INDEX section not found."
+    note_present = "NOTE:" in paragraphs[start_index + 1] # check if a "NOTE:" is present immediately after "CONSUMER PRICE INDEX"
+    target_index = start_index + 3 if note_present else start_index + 2
+    if target_index < len(paragraphs):
+        target_paragraph = paragraphs[target_index].replace('\n', ' ') # replace newline characters with a space
+        return target_paragraph
+    else:
+        return "The paragraph of interest could not be found."
+    
+
+def summarize_paragraph(paragraph: str) -> str:
+    """
+    I decided to use a BART pre-trained model to summarize the paragraph retrieved above, and ignore the food section of it. The model is fine-tuned for summarization tasks, and it should be able to generate a good summary of the paragraph. The model is not perfect, and the summary could be better, but it should be good enough for this project. I already used BART previously, so I know the capabilities of the model. The only slight issue is that the paragraph is not very long, and the model doesn't have a lot of margin to generate a good summary.
+
+    Args:
+        paragraph (str): The paragraph to summarize.
+
+    Returns:
+        str: The summarized text.
+    """
+    model_name = "facebook/bart-large-cnn"
+    tokenizer = BartTokenizer.from_pretrained(model_name)
+    model = BartForConditionalGeneration.from_pretrained(model_name)
+
+    input_text = "Summarize and ignore the food parts: " + paragraph # prompt for the model. This could be improved by adding more information to the prompt, but for this project, it should be enough.
+    input_ids = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    # # The following parameters have been fine-tuned with the past 10 months of CPI reports
+    summary_ids = model.generate(
+        input_ids,
+        num_beams=4,
+        min_length=20,
+        max_length=60,
+        length_penalty=1.0, # no penalty here works better because the paragraph is short
+        no_repeat_ngram_size=3,  # prevent repetition of phrases
+        early_stopping=True  # for short paragraphs like this one it's not really needed
+    )
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    return summary
 
 
 def main():
@@ -273,4 +368,16 @@ def main():
     ])
 
     NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df = process_cpi_data(df, category_map, weight_map)
-    save_cpi_dataframes_to_csv(NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df)
+    save_cpi_dataframes_to_csv(NSA_MoM_df, NSA_YoY_df, SA_MoM_df, SA_YoY_df, folder_name)
+
+    url = "https://www.bls.gov/news.release/cpi.nr0.htm" # URL of BLS CPI latest report
+    full_text = fetch_report_text(url)
+
+    relevant_paragraph = extract_paragraph_based_on_index(full_text)
+
+    summary = summarize_paragraph(relevant_paragraph)
+
+    txt_path = os.path.join(folder_name, 'summary.txt')
+    with open(txt_path, 'w') as file:
+        file.write(summary)
+

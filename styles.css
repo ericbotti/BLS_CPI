@@ -34,3 +34,16 @@ td {
 .stMultiSelect [data-baseweb=select] span{
     max-width: 250px; /* Trick to avoid words in the multiselection widget to get truncated */
 }
+
+.textbox {
+    /* border: 1px solid gray;  Custom border color */
+    border: 3px solid #262730;  /* Match Streamlit gray color: https://github.com/arnaudmiribel/streamlit-extras/blob/main/src/streamlit_extras/colored_header/__init__.py#L23 (90% grey) */
+    background-color: rgba(255, 255, 255, 0.0);  /* Light blue background */
+    overflow: hidden;          /* Prevent scrollbars */
+    resize: none;              /* Disable resizing */
+    border-radius: 0px;        /* Rounded corners */
+    padding: 10px;              /* Padding inside the text area */
+    font-size: 16px;            /* Larger font size */
+    color: white;                /* Text color */
+    width: 100%;                /* Full width */
+}

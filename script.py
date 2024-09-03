@@ -49,7 +49,7 @@ def main():
     swiss_tz = pytz.timezone('Europe/Zurich')
 
     # BLS CPI data comes out at 08:30:00 EST. We take two seconds of buffer before running the API requests, in order to be sure of getting the new data. Convert then 08:30:02 EST to Switzerland time to properly running the scheduler.
-    est_time = datetime.now(eastern_tz).replace(hour=6, minute=17, second=2, microsecond=0)
+    est_time = datetime.now(eastern_tz).replace(hour=8, minute=30, second=2, microsecond=0)
     swiss_time = est_time.astimezone(swiss_tz)
 
     # Run the CPI data retrieval script initially to have a Streamlit app with data to display even before the new data is available

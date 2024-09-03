@@ -44,7 +44,36 @@ def initialize_cpi_data() -> tuple:
         'Supercore': services_less_energy_weight - shelter_weight 
     }
 
-    # CPI id map
+    # CPI IDs. SA = Seasonally Adjusted, NSA = Not Seasonally Adjusted
+    '''
+    Consumer Price Index for All Urban Consumers (CPI-U)
+    - All items in U.S. city average, all urban consumers
+        - NSA: CUUR0000SA0
+        - SA: CUSR0000SA0
+    - All items less food and energy in U.S. city average, all urban consumers
+        - NSA: CUUR0000SA0L1E
+        - SA: CUSR0000SA0L1E
+    - Food in U.S. city average, all urban consumers
+        - NSA: CUUR0000SAF1
+        - SA: CUSR0000SAF1
+    - Food at home in U.S. city average, all urban consumers
+        - NSA: CUUR0000SAF11
+        - SA: CUSR0000SAF11
+    - Energy in U.S. city average, all urban consumers
+        - NSA: CUUR0000SA0E
+        - SA: CUSR0000SA0E
+    - Commodities less food and energy commodities in U.S. city average, all urban consumers
+        - NSA: CUUR0000SACL1E
+        - SA: CUSR0000SACL1E
+    - Services less energy services in U.S. city average, all urban consumers
+        - NSA: CUUR0000SASLE
+        - SA: CUSR0000SASLE
+    - Shelter in U.S. city average, all urban consumers
+        - NSA: CUUR0000SAH1
+        - SA: CUSR0000SAH1
+    '''
+
+    # CPI ID map
     series_names = {
         'CUUR0000SA0': 'NSA_All_Items',
         'CUSR0000SA0': 'SA_All_Items',
@@ -277,7 +306,7 @@ def fetch_report_text(url: str) -> str:
         The text of the report
     '''
     headers = {
-        'User-Agent': 'email@domain.name'  # it doesn't matter
+        'User-Agent': 'email@domain.name'  # it doesn't matter what you put here, as long as it's a valid email format
     }
     response = requests.get(url, headers=headers)
     if response.status_code == 200: # code 200 means the request was successful
@@ -321,10 +350,10 @@ def summarize_paragraph(paragraph: str) -> str:
     I decided to use a BART pre-trained model to summarize the paragraph retrieved above, and ignore the food section of it. The model is fine-tuned for summarization tasks, and it should be able to generate a good summary of the paragraph. The model is not perfect, and the summary could be better, but it should be good enough for this project. I already used BART previously, so I know the capabilities of the model. The only slight issue is that the paragraph is not very long, and the model doesn't have a lot of margin to generate a good summary.
 
     Args:
-        paragraph (str): The paragraph to summarize.
+        paragraph: The paragraph to summarize.
 
     Returns:
-        str: The summarized text.
+        The summarized text.
     """
     model_name = "facebook/bart-large-cnn"
     tokenizer = BartTokenizer.from_pretrained(model_name)

@@ -37,12 +37,12 @@ td {
 
 .textbox {
     border: 4px solid #262730;  /* Match Streamlit gray color: https://github.com/arnaudmiribel/streamlit-extras/blob/main/src/streamlit_extras/colored_header/__init__.py#L23 (90% grey) */
-    background-color: rgba(255, 255, 255, 0.0);  /* Light blue background */
+    background-color: rgba(255, 255, 255, 0.0); 
     overflow: hidden;          /* Prevent scrollbars */
     resize: none;              /* Disable resizing */
-    border-radius: 0px;        /* Rounded corners */
-    padding: 10px;              /* Padding inside the text area */
-    font-size: 16px;            /* Larger font size */
-    color: white;                /* Text color */
-    width: 100%;                /* Full width */
+    border-radius: 0px;        /* no rounded corners */
+    padding: 10px;              
+    font-size: 16px;            
+    color: white;              
+    width: 100%;        
 }
